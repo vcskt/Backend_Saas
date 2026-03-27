@@ -65,10 +65,33 @@ volumes:
 
 O container foi levantado e está atualmente online.
 
+## 5. Liberação de Conexão Externa para Banco de Dados
+
+Conforme os ajustes locais no arquivo `docker-compose.yml`, a porta padrão de acesso ao banco externo foi modificada (exemplo para `15432:5432`). 
+Como bloqueamos a VPS com o UFW (Firewall) na Etapa 2, tornou-se necessário fatiar e permitir o tráfego desta porta customizada para que um computador Windows (através de SGBDs como DBeaver ou PgAdmin) pudesse gerir as tabelas:
+
+```bash
+# Liberação de porta no Firewall Linux
+sudo ufw allow 15432/tcp
+sudo ufw reload
+```
+
+Com a regra inserida, a gestão dos dados passa a ser possível via:
+*   **IP Host:** `192.168.5.14`
+*   **Porta (nova):** `15432`
+*   **Usuário/Senha:** Valores atualizados de forma customizada no arquivo `.yml` do repositório.
+
 ---
 
-> [!TIP]
-> **O Que Faremos Agora:**
-> A "Estrada de Produção" está pronta 🛣️!
-> 
-> O próximo passo é virarmos a cabeça para o lado "Programador", criando aqui no VS Code/Windows o coração da nossa API com o **NestJS** (Módulos de Usuários, JWT, Segurança de Rotas, etc.), conectá-la a esse banco que criamos e, ao final, jogar esse código empacotado para o Servidor. Tudo isso com o Docker em mente!
+A fase puramente de infraestrutura foi concluída, validada e está totalmente operacional.
+
+## 6. Criação do Ambiente de Código Node.js (NestJS e ORM)
+
+Após validada as fundações da VPS, iniciou-se o fluxo de Desenvolvimento Backend nativo (`D:\GitHub\Sites\Backend_Saas`).
+
+* **Configuração da Base NestJS**: Toda a fundação arquitetural da API foi gerada pelo comando `@nestjs/cli new`. Isso incluiu os empacotadores, o `eslint` e criação do diretório vital `/src`.
+* **O ORM Prisma**: Instalamos o framework de banco de dados `Prisma` (Versão v7.x). Ele conecta as entidades do NestJS ao Postgres remoto de forma coesa (Type Safe).
+* **Modelagem e Migração**: Criamos o arquivo relacional de todas as regras documentadas no projeto dentro de `prisma/schema.prisma` (Tabelas de Acessos, Users, Lojas, etc). Rodamos a versão de sincronização `dev init_database` - onde o Prisma conectou pelo seu IP `192.168.5.14` e subiu permanentemente tudo lá nas tabelas do Postgres.
+
+> [!NOTE]
+> **Ajuste Técnico da String**: Na configuração do Prisma 7, criamos o arquivo de suporte `prisma.config.ts` para integrar com o `.env` (onde convertemos o `@` da sua senha do banco para `%40`). Isso blindou perfeitamente o framework do Backend para nunca falhar na leitura dessa senha forte por conflitos!

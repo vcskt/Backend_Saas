@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(USER)
+  createdAt    DateTime   @default(now())
+  
+  // Relacionamentos
+  clients      Client[]
+  news         News[]
+  comments     Comment[]
+  stores       Store[]
+
+  @@map("users")
+}
+
+model Client {
+  id        Int       @id @default(autoincrement())
+  userId    Int?      // Quem cadastrou o cliente
+  name      String
+  document  String?   @unique // CPF/CNPJ
+  phone     String?
+  address   String?
+  createdAt DateTime  @default(now())
+
+  user      User?     @relation(fields: [userId], references: [id])
+  comments  Comment[]
+
+  @@map("clients")
+}
+
+model News {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  authorId  Int      // Somente ADM
+  createdAt DateTime @default(now())
+
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@map("news")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  authorId  Int      // Somente ADM
+  content   String
+  createdAt DateTime @default(now())
+
+  client    Client   @relation(fields: [clientId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@map("comments")
+}
+
+model Store {
+  id          Int      @id @default(autoincrement())
+  ownerId     Int      // Usuário normal (Lojista)
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  owner       User     @relation(fields: [ownerId], references: [id])
+
+  @@map("stores")
+}
