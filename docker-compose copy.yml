@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: blackjag_postgres
+    restart: always
+    environment:
+      # ALTERE OS VALORES ABAIXO COMO DESEJAR
+      POSTGRES_USER: vcskt_db
+      POSTGRES_PASSWORD: Berinjelinha08@
+      POSTGRES_DB: blackjag_db
+    ports:
+      # MUDE O LADO ESQUERDO PARA A PORTA QUE DESEJA (EX: "5450:5432")
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
