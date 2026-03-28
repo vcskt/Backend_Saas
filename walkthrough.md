@@ -96,76 +96,51 @@ Após validada as fundações da VPS, iniciou-se o fluxo de Desenvolvimento Back
 > [!NOTE]
 > **Ajuste Técnico da String**: Na configuração do Prisma 7, criamos o arquivo de suporte `prisma.config.ts` para integrar com o `.env` (onde convertemos o `@` da sua senha do banco para `%40`). Isso blindou perfeitamente o framework do Backend para nunca falhar na leitura dessa senha forte por conflitos!
 
-## 7. Deploy na VPS e Configuração de SSL (HTTPS)
+## 7. Deploy da API NestJS de forma Contida (Isolada do docker-compose)
 
-Esta etapa descreve como levar o código concluído para a VPS e habilitar a conexão segura (HTTPS) através do Nginx.
+Para manter o seu `docker-compose.yml` (e banco de dados) perfeitamente intactos e independentes, o deploy da sua API acontecerá através de comandos Docker puros usando exclusivamente as regras embutidas no seu `Dockerfile`.
 
-### 7.1. Sincronização do Código (No seu PC)
-1. Certifique-se de que o Git ignorou os arquivos sensíveis (`.env`, `docker-compose.yml`).
-2. Faça o commit das alterações:
-   ```bash
-   git add .
-   git commit -m "feat: backend completo com nestjs, auth e docker"
-   git push origin main
-   ```
+### 7.1. Sincronização do Código
+O seu PC Windows deve sempre ser a fonte da verdade para o Git. Ao mudar arquivos de configuração da API, apenas "commite" tudo daqui com o botão "Sync Changes" do VS Code e vá para o seu terminal VPS.
 
 ### 7.2. Preparação na VPS (Acesso SSH)
-1. Acesse sua VPS: `ssh seu_usuario@192.168.5.14`
-2. Navegue até a pasta do projeto: `cd ~/caminho_do_projeto`
-3. Atualize o código: `git pull origin main`
-4. Crie o arquivo de ambiente:
+1. Na sua VPS Linux (`root@vps-portainer`), entre na pasta oficial do repositório clonado:
    ```bash
-   cp .env.example .env
-   nano .env
+   cd ~/projeto_blackjag
    ```
-   *Preencha a senha do banco e crie uma senha forte e longa para o `JWT_SECRET`.*
+2. Baixe todo o código que você salvou no GitHub lá do Windows:
+   ```bash
+   git pull origin main
+   ```
 
-### 7.3. Geração de Certificado SSL (Nginx)
-
-Como o IP atual (`192.168.5.14`) é uma rede local, temos duas abordagens. Uma para testes imediatos (Local) e outra para Produção Real na Internet (Let's Encrypt). O Nginx espera os certificados na pasta `./nginx/ssl`.
-
-**Opção A) Local / Homologação (Auto-assinado)**
-Útil para testar HTTPS na sua rede local hoje mesmo.
-Na VPS, dentro da pasta do projeto, rode:
+### 7.3. Configurando o Ambiente Silencioso de Nuvem
+Sua aplicação é desenhada com segurança máxima. Ou seja, jamais exponha senhas no Github. 
+Você deve criar o arquivo oculto de senhas `.env` usando o terminal do Linux da mesma pasta `~/projeto_blackjag`:
 ```bash
-mkdir -p nginx/ssl
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./nginx/ssl/privkey.pem -out ./nginx/ssl/fullchain.pem -subj "/CN=blackjag.com.br"
+cp .env.example .env
+nano .env
 ```
-*(Isso gerará os arquivos `privkey.pem` e `fullchain.pem` falsos para o Nginx não quebrar ao subir).*
+Confirme se as credenciais digitadas no `.env` do Linux batem exatamente com as do seu Banco PostgreSQL atual, adicione um valor cego para o Frontend (mesmo que ainda não o tenha) e crie uma hash gigante aleatória para o `JWT_SECRET`. Tudo o que for alterado no Linux fica cravado no Linux.
 
-**Opção B) Produção Real na Internet (Let's Encrypt / Certbot)**
-Requer que o domínio `blackjag.com.br` em um registrador web (ex: Registro.br) aponte para o IP **Público** da sua VPS e que a porta 80 esteja liberada para a internet.
-Na VPS:
-1. Instale o Certbot:
-   ```bash
-   sudo apt update
-   sudo apt install certbot -y
-   ```
-2. Pare qualquer serviço na porta 80 (se o Nginx já estiver rodando):
-   ```bash
-   sudo docker stop blackjag_nginx
-   ```
-3. Gere o certificado (o Certbot fará um desafio provando que você é dono do domínio):
-   ```bash
-   sudo certbot certonly --standalone -d blackjag.com.br -d www.blackjag.com.br
-   ```
-4. Se der sucesso, crie atalhos (symlinks) dos certificados para a pasta do nosso Nginx:
-   ```bash
-   mkdir -p ./nginx/ssl
-   sudo ln -s /etc/letsencrypt/live/blackjag.com.br/fullchain.pem ./nginx/ssl/fullchain.pem
-   sudo ln -s /etc/letsencrypt/live/blackjag.com.br/privkey.pem ./nginx/ssl/privkey.pem
-   ```
+### 7.4. Compilação e Execução Manuais do Container (`Dockerfile`)
 
-### 7.4. Subindo o Sistema Todo
-Com o `.env` configurado e os certificados HTTPS lá na pasta `./nginx/ssl/`, execute o Docker:
+Tendo a certeza que o arquivo `Dockerfile` baixou com sucesso ao fazer o pull, utilize o Docker para interpretá-lo:
 
+**Passo 1: Construir a imagem Node.js Estática**
+Esse comando empacota a sua inteligência: o Docker puxa todos os programas necessários da internet (node_modules), roda as conversões e fecha o sistema.
 ```bash
-# Faz o "build" da imagem Node.js/Nest e reinicia os serviços
-docker compose up -d --build
+docker build -t minha_api_node .
 ```
 
-Para verificar se tudo ligou corretamenete:
+**Passo 2: Rodar o Container em Retaguarda (Produção)**
+Pronto, imagem instanciada. Agora dê o Play no serviço acoplando o seu `.env` e espelhando na porta 3000 do mundo:
 ```bash
-docker compose logs -f api
-docker compose logs -f nginx
+docker run -d --name container_node -p 3000:3000 --env-file .env minha_api_node
+```
+
+**Auditoria e Diagnóstico:**
+Se a integração do site estiver falhando por algum motivo insólito e você precisar observar os ecos visando rastrear o IP, é só digitar no linux:
+```bash
+docker logs -f container_node
+```
 ```
