@@ -144,3 +144,18 @@ Se a integração do site estiver falhando por algum motivo insólito e você pr
 docker logs -f container_node
 ```
 ```
+
+### 7.5. Solução de Problemas e Aprendizados do Deploy (Troubleshooting)
+
+Durante a primeira tentativa de deploy da API NestJS dentro do container, enfrentamos o erro fatal:
+`Error: Cannot find module '/app/dist/main'`
+
+Para garantir que esse problema não volte a ocorrer no futuro, documentamos as causas raiz e as soluções aplicadas de forma permanente na arquitetura do código:
+
+1. **Incompatibilidade da versão do Prisma (v7 vs API Clássica):**
+   * **O Problema:** O código da nossa aplicação (Services, Guards, etc.) foi escrito focado na API clássica do Prisma (exportação direta do `PrismaClient` e enums de `@prisma/client`). No entanto, o `package.json` estava instalando o **Prisma 7**, que introduziu quebras dramáticas (Breaking Changes), exigindo adaptadores (Driver Adapters) e parando de exportar os enums. Isso causava mais de 40 erros silenciosos de TypeScript durante o `nest build`, impedindo a geração real da pasta `dist`.
+   * **A Solução:** Realizamos o **downgrade para o Prisma 6.6.0** direto no `package.json`, que é focado em estabilidade (LTS) e compatibilidade total com a nossa base de código atual.
+
+2. **Conflito de Compilação do TypeScript (`rootDir`):**
+   * **O Problema:** O arquivo `prisma.config.ts` posicionado na raiz do projeto (gerado originalmente pelo Prisma 7) forçava o compilador TypeScript (`tsc`) a inferir o diretório raiz (`rootDir`) de forma equivocada. Sem a configuração explícita, o compilador tentava englobar tanto a pasta `/src` quanto o próprio `prisma.config.ts` na raiz, gerando a compilação final em `dist/src/main.js` em vez de `dist/main.js`.
+   * **A Solução:** Removemos a funcionalidade do `prisma.config.ts` (já que o Prisma v6 lê a URL direto do `schema.prisma`), além de adicionarmos as rédeas explícitas no **`tsconfig.json`**: definindo rigorosamente o escopo de entrada (`"rootDir": "./src"`, `"include": ["src/**/*"]`). Em união, alteramos o **`dockerfile`** para sempre rodar `npm install` sem bloqueios de lockfiles super-estruturados no container em produção. Isso consertou de vez as saídas no repositório.
