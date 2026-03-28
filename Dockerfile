@@ -8,10 +8,10 @@ WORKDIR /app
 # Copia os manifestos de dependências
 COPY package*.json ./
 
-# Instala TODAS as dependências (incluindo devDeps — necessário para nest build e prisma)
+# Instala TODAS as dependências (incluindo devDeps — necessário para nest build)
 RUN npm ci
 
-# Copia todo o código fonte
+# Copia todo o código fonte (exceto o que está no .dockerignore)
 COPY . .
 
 # Gera os tipos do Prisma Client
@@ -37,9 +37,8 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Copia o schema e config do Prisma (necessário para migrate deploy)
+# Copia o schema do Prisma (necessário para migrate deploy)
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 # Copia o build compilado
 COPY --from=builder /app/dist ./dist
@@ -47,5 +46,5 @@ COPY --from=builder /app/dist ./dist
 # Expõe a porta da API
 EXPOSE 3000
 
-# Executa as migrações e inicia a API
+# Executa as migrações (Prisma 6) e inicia a API
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
