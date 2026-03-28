@@ -1,0 +1,42 @@
+﻿src/auth/auth.service.ts(21,40): error TS2339: Property 'user' does not exist on type 'PrismaService'.
+src/auth/auth.service.ts(29,36): error TS2339: Property 'user' does not exist on type 'PrismaService'.
+src/auth/auth.service.ts(42,36): error TS2339: Property 'user' does not exist on type 'PrismaService'.
+src/auth/auth.service.ts(61,24): error TS2339: Property 'user' does not exist on type 'PrismaService'.
+src/auth/decorators/roles.decorator.ts(2,10): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+src/auth/guards/roles.guard.ts(3,10): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+src/clients/clients.controller.ts(7,10): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+src/clients/clients.service.ts(10,24): error TS2339: Property 'client' does not exist on type 'PrismaService'.
+src/clients/clients.service.ts(16,24): error TS2339: Property 'client' does not exist on type 'PrismaService'.
+src/clients/clients.service.ts(22,38): error TS2339: Property 'client' does not exist on type 'PrismaService'.
+src/clients/clients.service.ts(32,24): error TS2339: Property 'client' does not exist on type 'PrismaService'.
+src/clients/clients.service.ts(37,23): error TS2339: Property 'client' does not exist on type 'PrismaService'.
+src/comments/comments.controller.ts(7,10): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+src/comments/comments.service.ts(10,24): error TS2339: Property 'comment' does not exist on type 'PrismaService'.
+src/comments/comments.service.ts(17,24): error TS2339: Property 'comment' does not exist on type 'PrismaService'.
+src/comments/comments.service.ts(27,24): error TS2339: Property 'comment' does not exist on type 'PrismaService'.
+src/comments/comments.service.ts(34,39): error TS2339: Property 'comment' does not exist on type 'PrismaService'.
+src/comments/comments.service.ts(36,24): error TS2339: Property 'comment' does not exist on type 'PrismaService'.
+src/comments/comments.service.ts(40,39): error TS2339: Property 'comment' does not exist on type 'PrismaService'.
+src/comments/comments.service.ts(42,23): error TS2339: Property 'comment' does not exist on type 'PrismaService'.
+src/news/news.controller.ts(7,10): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+src/news/news.service.ts(10,24): error TS2339: Property 'news' does not exist on type 'PrismaService'.
+src/news/news.service.ts(17,24): error TS2339: Property 'news' does not exist on type 'PrismaService'.
+src/news/news.service.ts(24,36): error TS2339: Property 'news' does not exist on type 'PrismaService'.
+src/news/news.service.ts(34,24): error TS2339: Property 'news' does not exist on type 'PrismaService'.
+src/news/news.service.ts(39,23): error TS2339: Property 'news' does not exist on type 'PrismaService'.
+src/prisma/prisma.service.ts(2,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+src/prisma/prisma.service.ts(7,16): error TS2339: Property '$connect' does not exist on type 'PrismaService'.
+src/prisma/prisma.service.ts(12,16): error TS2339: Property '$disconnect' does not exist on type 'PrismaService'.
+src/stores/stores.controller.ts(7,10): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+src/stores/stores.service.ts(10,24): error TS2339: Property 'store' does not exist on type 'PrismaService'.
+src/stores/stores.service.ts(17,24): error TS2339: Property 'store' does not exist on type 'PrismaService'.
+src/stores/stores.service.ts(22,24): error TS2339: Property 'store' does not exist on type 'PrismaService'.
+src/stores/stores.service.ts(28,37): error TS2339: Property 'store' does not exist on type 'PrismaService'.
+src/stores/stores.service.ts(38,24): error TS2339: Property 'store' does not exist on type 'PrismaService'.
+src/stores/stores.service.ts(46,23): error TS2339: Property 'store' does not exist on type 'PrismaService'.
+src/users/dto/user.dto.ts(2,10): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+src/users/users.controller.ts(7,10): error TS2305: Module '"@prisma/client"' has no exported member 'Role'.
+src/users/users.service.ts(11,24): error TS2339: Property 'user' does not exist on type 'PrismaService'.
+src/users/users.service.ts(17,36): error TS2339: Property 'user' does not exist on type 'PrismaService'.
+src/users/users.service.ts(27,24): error TS2339: Property 'user' does not exist on type 'PrismaService'.
+src/users/users.service.ts(36,23): error TS2339: Property 'user' does not exist on type 'PrismaService'.
