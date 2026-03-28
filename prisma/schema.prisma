@@ -10,6 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // url é definida via prisma.config.ts (DATABASE_URL) — Prisma 7+
 }
 
 enum Role {

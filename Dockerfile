@@ -1,21 +1,51 @@
-FROM node:20-alpine
+# ============================================================
+# Stage 1 — Builder: instala tudo e compila o TypeScript
+# ============================================================
+FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-# 1. Copia manifestos e instala TODAS as dependências (necessário pro prisma rodar migrations depois lendo ts)
+# Copia os manifestos de dependências
 COPY package*.json ./
+
+# Instala TODAS as dependências (incluindo devDeps — necessário para nest build e prisma)
 RUN npm ci
 
-# 2. Copia o resto do código
+# Copia todo o código fonte
 COPY . .
 
-# 3. Gera os tipos do Prisma para o Node
+# Gera os tipos do Prisma Client
 RUN npx prisma generate
 
-# 4. Empacota a aplicação do NestJS
+# Compila o NestJS → gera /app/dist
 RUN npm run build
 
-# Ouve na porta 3000
+# ============================================================
+# Stage 2 — Runner: imagem final enxuta apenas com o essencial
+# ============================================================
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Copia os manifestos
+COPY package*.json ./
+
+# Instala apenas dependências de produção
+RUN npm ci --omit=dev
+
+# Copia o Prisma Client gerado (binários nativos do alpine)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copia o schema e config do Prisma (necessário para migrate deploy)
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+
+# Copia o build compilado
+COPY --from=builder /app/dist ./dist
+
+# Expõe a porta da API
 EXPOSE 3000
 
-# Roda as migrações (se houver banco desatualizado) e inicia a API
+# Executa as migrações e inicia a API
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
