@@ -1,3 +1,2 @@
-// prisma.config.ts — compatível com Prisma 6
-// No Prisma 6 a URL é lida direto do schema.prisma via env("DATABASE_URL")
-// Este arquivo é mantido apenas para compatibilidade futura
+// Arquivo vazio — Prisma 6 não usa prisma.config.ts
+// A URL de conexão é lida do DATABASE_URL no prisma/schema.prisma via env("DATABASE_URL")
