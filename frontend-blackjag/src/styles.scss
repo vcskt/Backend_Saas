@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-blackjag: #000000;
+  --color-grayjag: #4B5563;
+  --color-lightjag: #F3F4F6;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-lightjag);
+  color: var(--color-blackjag);
+}
