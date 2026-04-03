@@ -1,81 +1,59 @@
-# Plano de Implantação e Infraestrutura - Blackjag (com Coolify)
+# Arquitetura e Estrutura no Coolify - Blackjag
 
-## 1. Avaliação de Mercado: Por que Coolify?
+Você precisará hospedar 3 elementos principais: **Banco de Dados (PostgreSQL)**, **Backend (NestJS)** e **Frontend (Angular)**. Como notei que seu frontend está dentro da pasta `frontend-blackjag`, estamos lidando com uma estrutura de **Monorepo** (tudo no mesmo repositório do GitHub).
 
-Ao provisionar um projeto (como o seu backend em NestJS e banco PostgreSQL) em uma VPS (Virtual Private Server), temos diferentes caminhos. É fundamental escolher um que traga **segurança, facilidade de manutenção e não aprisione você** (vendor lock-in).
+A grande vantagem do Coolify é que ele suporta perfeitamente repositórios Monorepo (onde o back e o front moram no mesmo repositório, mas em pastas diferentes). Você não precisa criar vários `docker-compose` complexos. O próprio Coolify orquestrará os containers de forma independente na mesma rede.
 
-### Opções Disponíveis no Mercado
+## 1. O "Projeto" e "Ambiente" no Coolify
+No painel do Coolify, a melhor prática é:
+* **Projeto:** `Blackjag`
+* **Ambiente (Environment):** `Production`
 
-1. **Bare Metal / VPS "Pura" (Docker, Nginx puro, Shell Scripts):**
-   * **Prós:** Controle total, consumo levíssimo de hardware.
-   * **Contras:** A configuração do CI/CD (integração contínua), renovação de SSL, backups e monitoramento terão que ser feitos do zero. Demanda alto conhecimento em Linux/DevOps.
+Tudo que criarmos ficará dentro deste ambiente, garantindo que os containers conversem nativamente através da rede interna (Docker Network) segura do Coolify.
 
-2. **Dokku:**
-   * **Prós:** O "Heroku" do mundo Open Source. Bastante robusto e estável.
-   * **Contras:** A maior parte do gerenciamento é via linha de comando (CLI). Pode ser pouco visual para quem prefere uma interface.
+## 2. Ordem de Criação dos Containers (O Melhor Caminho)
 
-3. **CapRover:**
-   * **Prós:** Interface gráfica simples, rápido, baixo consumo de RAM.
-   * **Contras:** Menor quantidade de integrações modernas; o gerenciamento de serviços complexos (como pull request previews) é limitado.
+Abaixo estão os 3 "recursos" (containers) que você criará dentro do ambiente `Production` do Coolify, exatamente **nesta ordem**.
 
-4. **Easypanel:**
-   * **Prós:** Interface linda e extremamente fácil de usar. Usa Docker puro por baixo.
-   * **Contras:** Algumas "features" avançadas podem ser bloqueadas na versão gratuita (premium).
+### 📦 1º Container: Banco de Dados (PostgreSQL)
+É o primeiro a ser criado, pois o Backend vai precisar da URL dele para subir corretamente.
+* **Tipo no Coolify:** Database > PostgreSQL.
+* **Por que é o melhor caminho?** Criar usando a ferramenta nativa de banco do Coolify (em vez de um Dockerfile customizado) habilita funcionalidades avançadas automáticas, como **Backups Agendados** (fazer backup do BD para a Nuvem de 1 em 1 dia, por exemplo) com apenas 1 clique.
+* **Portas:** Apenas acessível internamente pelo backend, sem expor a porta 5432 publicamente (garante máxima segurança contra invasões).
+* **Parâmetros Base:**
+  * User: `vcskt_db`
+  * database: `blackjag_db`
 
-5. **Coolify (A Melhor Escolha Atual):**
-   * **Prós:** É a alternativa definitiva ao Vercel/Render/Heroku. 100% gratuito e open-source. Ele já fornece: **CI/CD direto do GitHub**, gerador automático de certificado **SSL**, gerenciamento de **Bancos de Dados com backup em 1 clique**, e suporta integração baseada no `Dockerfile` que você já tem ou lendo o projeto diretamente via `Nixpacks`.
-   * **Contras:** A interface de controle e as rotinas do Coolify rodam na sua própria VPS, o que consome um pouco mais de CPU/RAM (Recomendado 2 a 4 GB VPS Mínima).
+### ⚙️ 2º Container: Backend (Instância NestJS)
+Após o banco estar rodando, o Coolify te dará a URL Interna do banco (ex: `postgresql://vcskt_db:senha_forte@postgres-xyz:5432/blackjag_db`). Usaremos ela no Backend.
+* **Tipo no Coolify:** Application > GitHub Repository.
+* **Base Directory:** `/` (Raiz do repositório, onde está o código NestJS e o `Dockerfile`).
+* **Build Pack:** `Docker` (Ele vai ler o seu `Dockerfile` atual, rodar o `npm run build`, gerar o Prisma e finalmente subir o container via `node dist/main`).
+* **Domínio:** `api.seu-dominio.com.br` (SSL ativado)
+* **Variáveis de Ambiente (.env):** Adicionar a variável `DATABASE_URL` no painel, apontando para o banco criado no passo anterior.
 
-> [!TIP]
-> **Veredito:** Você fez uma **excelente escolha** ao sugerir o Coolify. Ele vai poupar dezenas de horas de configuração de Nginx, SSL e Pipelines.
-
----
-
-## 2. Infraestrutura Recomendada (VPS)
-
-Para suportar o Control Plane do Coolify + Seu Banco PostgreSQL + O Backend NestJS + Eventualmente o Frontend Angular:
-
-* **S.O:** Ubuntu 22.04 LTS ou Ubuntu 24.04 LTS (Um sistema "limpo", acabou de formatar).
-* **RAM:** **Gargalo principal.** Recomendo no **MÍNIMO 2 GB**, mas o cenário ideal para rodar o build pesadinho do NextJS/NestJS dentro do servidor através do Coolify é **4 GB de RAM** (ex: Hetzner Cloud, DigitalOcean, Linode).
-* **Armazenamento:** 40 a 50GB SSD no mínimo.
-
----
-
-## 3. Comandos de Implantação e Passos
-
-A grande vantagem do Coolify é que a maior parte da implantação **foge do terminal (comandos)** e vai para as **telas (cliques)**, gerando previsibilidade.
-
-### Passo 3.1: Instalação do Coolify na VPS
-Uma vez acessada sua VPS via SSH, e ela não tendo Nginx ou Apache rodando (seja nova), roda-se apenas o comando oficial:
-```bash
-curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
-```
-Ao final, ele vai disponibilizar a URL (ex: `http://<IP_DA_VPS>:8000`) para você criar sua conta admin no painel.
-
-### Passo 3.2: Configurando o Banco de Dados (PostgreSQL) no Painel
-1. Criar novo Recurso > **Database** > **PostgreSQL**.
-2. Definir usuário: `vcskt_db`
-3. Banco: `blackjag_db`
-4. Como o Coolify roda num Docker Swarm/Network interna, ele vai nos dar o **Internal Database URL** (Ex: `postgresql://vcskt_db:senhasupersecreta@postgres-xyz:5432/blackjag_db`).
-
-### Passo 3.3: Implantando o Backend (NestJS)
-Esse repositório contém um `Dockerfile`. Essa é a forma mais fácil e segura de fazer deploy no Coolify. O Coolify permite apontar diretamente para este repositório do Github.
-
-1. Novo Recurso > **Public Repository** ou **Private Repository** (dependendo de como o código está no Github).
-2. Configure as **Environment Variables** (.env) na aba apropriada. Importante mapear:
-   * `DATABASE_URL` = <A URL INTERNA do PostgreSQL copiada do passo anterior>
-   * Segredos do JWT, portas, etc.
-3. Em *Build Pack*, escolha **Docker**. Ele detectará o seu `Dockerfile` na raiz (`/Dockerfile`).
-4. (Opcional) Edite o `start command` se preciso, mas já deixamos o cmd do próprio Dockerfile fazer. Você pode expor a porta `3000`.
-5. Você associa o **Domain**: ex `api.blackjag.com.br`, e diz para ele habilitar `Let's Encrypt` na caixinha de verificação. Ele vai criar o Nginx e gerar o SSL silenciosamente!
+### 🎨 3º Container: Frontend (Aplicação Angular)
+O Angular exige apenas um servidor de arquivos estáticos (como Nginx) para entregar a tela para o navegador do cliente. O Coolify lidará com isso de forma brilhante se configurarmos as pastas certas.
+* **Tipo no Coolify:** Application > GitHub Repository (o mesmo repositório do Backend).
+* **Base Directory:** `/frontend-blackjag` (O Coolify olhará apenas para esta sub-pasta).
+* **Build Pack:** `Nixpacks` (Recomendado). A ferramenta inteligênte Nixpacks reconhecerá que é um pacote Node (Angular/NPM) e fará o build estático (`ng build`). 
+    * Caso prefira o modo "Docker puro", nós também poderemos criar um Nginx-Dockerfile dentro da pasta do frontend futuramente. Mas a Build Nativa Estática do Coolify costuma ser suficiente e super rápida.
+* **Domínio:** `app.seu-dominio.com.br` (SSL ativado)
+* **Variáveis de Ambiente:** Aqui você pode configurar para onde o Angular aponta na hora de chamar a API (`apiUrl = https://api.seu-dominio.com.br`).
 
 ---
 
-## User Review Required
+## 3. Resumo da Topologia Mapeada
+
+Ao fazer isso, a nuvem gerenciada estará assim:
+
+1. O Cliente acessa `app.blackjag...` na web.
+2. O servidor encaminha de forma segura (SSL/HTTPS gerado automaticamente pelo Coolify Host) para o **Container do Frontend Angular**.
+3. O Frontend fará chamadas autenticadas para `api.blackjag...`.
+4. O servidor recebe, passa pelo SSL e encaminha para o **Container Rest API (NestJS)**.
+5. O NestJS valida as entradas (Prisma) e fala com segurança com o **Container PostgreSQL** (através da rede virtual encriptada inacessível publicamente).
 
 > [!IMPORTANT]
-> - Precisaremos ajustar o `Dockerfile` atual para que no build possamos compilar o prisma sem dores de cabeça nas rotinas de CI/CD pelo Coolify?
-> - Você possui atualmente uma conta Cloud para provisionarmos essa VPS (como Hetzner, AWS EC2, DigitalOcean ou Contabo)?
-> - A infraestrutura suportará também o Deploy do Frontend Angular na mesma máquina? (Coolify também suporta estáticos (Angular/React) perfeitamente através de integração `Nixpacks` ou Nginx-Docker-Compose).
+> **Vantagens Finais:** Nenhuma necessidade de orquestrar certificados manualmente. Código pushado no `main` do GitHub fará o build e atualizará apenas as partes afetadas, gerando `Zero-Downtime Deploy` (o sistema nunca sai do ar na hora de atualizar).
 
-Ao aprovar estas análises, seguimos para os próximos pequenos ajustes de código visando o preparo do Dockerfile e Primas para o deploy.
+Aprova essa estrutura e modelagem de containers? Se sim, posso recomendar qual seria a sua máquina inicial na provedora Cloud de sua escolha e podemos adaptar seus arquivos (`Dockerfile`, `.env` do backend) para essa modelagem.
